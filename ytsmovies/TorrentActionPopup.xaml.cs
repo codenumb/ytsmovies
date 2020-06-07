@@ -11,7 +11,7 @@ using ytstorrent;
 namespace ytsmovies
 {
     [XamlCompilation(XamlCompilationOptions.Compile)]
-    public partial class TorrentActionPopup : ContentView
+    public partial class TorrentActionPopup : Rg.Plugins.Popup.Pages.PopupPage
     {
         public Int32 index { set; get; }
         public TorrentActionPopup(Int32 itemIndex)
@@ -21,7 +21,7 @@ namespace ytsmovies
             {
                 index = itemIndex;
             }
-       
+            Console.WriteLine("item clicked = {0}", index);            
         }
 
         private void start_Clicked(object sender, EventArgs e)

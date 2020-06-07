@@ -183,7 +183,7 @@ namespace ytstorrent
                 torinfo.status = "downlaoding";
                 torinfo.imageUrl = "none";
                 writeTorrentInfoToFile(torinfo);
-                System.IO.File.Copy(torrentFilePath, destPath);
+                System.IO.File.Copy(torrentFilePath, destPath,true);
                 torinfo.index=TorrentInfoList.Count + 1;                
                 TorrentInfoList.Add(torinfo);
                 torrentAction(torinfo, TorrentAction.START);
@@ -455,9 +455,10 @@ namespace ytstorrent
         public void writeTorrentInfoToFile(TorrentInfoModel torInfo)
         {
             BinaryWriter bw=null;
+            string fpath = Path.Combine(torrentsInfoPath, torInfo.manager.Torrent.Name.Replace(' ', '_'));
             try
             {
-                bw = new BinaryWriter(new FileStream(torInfo.manager.Torrent.Name.Replace(' ', '_'), FileMode.OpenOrCreate));
+                bw = new BinaryWriter(new FileStream(fpath, FileMode.OpenOrCreate));
             }
             catch (IOException e)
             {

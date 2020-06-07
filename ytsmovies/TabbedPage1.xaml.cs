@@ -17,6 +17,7 @@ using System.Diagnostics;
 using Xamarin.Essentials;
 using System.IO;
 using Xamarin.Forms.Markup;
+using Rg.Plugins.Popup.Services;
 
 namespace ytsmovies
 {
@@ -31,6 +32,7 @@ namespace ytsmovies
         {
             InitializeComponent();
             torrent = new MyTorrent();
+            torrent.initDownloadMan();
             ListViewDownloads.ItemsSource = MyTorrent.TorrentInfoList;
             /*for (int i = 0; i < 150; i++)
             {
@@ -119,7 +121,13 @@ namespace ytsmovies
 
         private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
         {
-            
+            TappedEventArgs tappedEventArgs = (TappedEventArgs)e;
+            PopupNavigation.Instance.PushAsync(new TorrentActionPopup((Int32)tappedEventArgs.Parameter));
+        }
+
+        private void ListViewDownloads_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+        {
+
         }
     }
 

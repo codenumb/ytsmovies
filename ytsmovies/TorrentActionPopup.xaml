@@ -21,11 +21,23 @@
             EasingOut="SinIn"
             HasBackgroundAnimation="True"/>
     </pages:PopupPage.Animation>
-    <StackLayout VerticalOptions="Center">
-        <Button Text="Start" x:Name="start" Clicked="start_Clicked" />
-        <Button Text="Pause" x:Name="pause" Clicked="pause_Clicked"/>
-        <Button Text="Stop" x:Name="stop" Clicked="stop_Clicked"/>
-        <Button Text="Remove" x:Name="remove" Clicked="remove_Clicked"/>
-        <Button Text="Remove and Delete" x:Name="delete" Clicked="delete_Clicked"/>
+    <StackLayout VerticalOptions="Center" Margin="80,0" Spacing="0">
+        <Grid RowSpacing="1" ColumnSpacing="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="40"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Text="Start" Grid.Row="0" BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="start" Clicked="start_Clicked"  />
+            <Button Text="Pause" Grid.Row="1"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="pause" Clicked="pause_Clicked"/>
+            <Button Text="Stop" Grid.Row="2"   BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="stop" Clicked="stop_Clicked"/>
+            <Button Text="Remove" Grid.Row="3"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="remove" Clicked="remove_Clicked"/>
+            <Button Text="Remove and Delete" Grid.Row="4"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="delete" Clicked="delete_Clicked"/>
+        </Grid>
     </StackLayout>
 </pages:PopupPage>
