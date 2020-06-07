@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TabbedPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:d="http://xamarin.com/schemas/2014/forms/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:local="clr-namespace:ytsmovies"
+            mc:Ignorable="d"
+             x:Class="ytsmovies.TabbedPage1"
+             BarBackgroundColor="#1D1D1D"
+             BackgroundColor="#3C3C3B"
+             
+            >
+
+
+    <!--Pages can be added as references or inline-->
+    <ContentPage 
+      Title="Home" 
+      IconImageSource="navbar_icon_home.png"
+      x:Name="tabPageHome" >
+        <ContentPage.Content>
+            <StackLayout VerticalOptions="Center">
+                <Label Text="No files selected" x:Name="label0" HorizontalOptions="Start" TextColor="White"></Label>
+                <Button Text="choose torrent" Clicked="Button_Clicked" x:Name="button0"/>
+                <Button Text="exit" Clicked="buttonExit_Clicked"  x:Name="buttonExit"/>
+                <Image x:Name="testImg"  />
+
+            </StackLayout>
+
+        </ContentPage.Content>
+
+    </ContentPage>
+
+
+    <!-- Download manager page -->
+    <ContentPage 
+      Title="Downloads" 
+      IconImageSource="navbar_icon_download"
+      x:Name="tabPageDownload"
+      HeightRequest="20"
+    >
+        <ContentPage.Content>
+            <StackLayout Margin="10,10,10,0">
+                <ListView Margin="0,0,0,0" RowHeight="60" x:Name="ListViewDownloads" ItemsSource="{Binding}">
+                    <!--
+                    <ListView.ItemsSource>
+                        <x:Array Type="{x:Type local:Downloads}">
+                            <local:Downloads Name="Steve" Size="1.2/1.2GB" Date="02-04-2020" Time="12:00:10 PM" />
+                            <local:Downloads Name="Torrent2" Size="1.8/2.2GB" Date="05-01-2020" Time="02:54:35 AM" />
+                            <local:Downloads Name="Torrent2" Size="900/900MB" Date="29-02-2020" Time="09:02:15 AM" />
+                        </x:Array>
+                    </ListView.ItemsSource>
+                    -->
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <ViewCell>
+                                <!--
+                                <StackLayout>
+                                   
+                                    <Label Text="{Binding Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="titile"/>
+                                </StackLayout>-->
+                                <Grid RowSpacing="1" ColumnSpacing="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Image Source="icon.png" Grid.Column="0" Grid.RowSpan="3" BackgroundColor="WhiteSmoke" HeightRequest="60" />
+                                    <Label Text="{Binding Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="titile"/>
+                                    <Label Text="{Binding Date}" Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" FontSize="Micro" TextColor="White"/>
+                                    <Label Text="{Binding Time}" Grid.Column="3" Grid.Row="1" Grid.ColumnSpan="2" FontSize="Micro" TextColor="White"/>
+                                    <Label x:Name="Progress" Text="{Binding Size}" Grid.Column="1" Grid.Row="2" FontSize="Micro" TextColor="White"/>
+                                    <Label x:Name="Status" Text="Seeding" Grid.Column="2" Grid.Row="2"  FontSize="Micro" TextColor="White"/>
+                                    <Label x:Name="Ups" Text="1.1 MBps" Grid.Column="3" Grid.Row="2" FontSize="Micro" TextColor="Green"/>
+                                    <Label x:Name="Dws" Text="1.0 MBps" Grid.Column="4" Grid.Row="2" FontSize="Micro" TextColor="White"/>
+                                </Grid>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackLayout>
+        </ContentPage.Content>
+    </ContentPage>
+    <ContentPage Title="Tab 3" />
+</TabbedPage>
