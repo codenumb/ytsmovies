@@ -39,7 +39,7 @@
     >
         <ContentPage.Content>
             <StackLayout Margin="10,10,10,0">
-                <ListView Margin="0,0,0,0" RowHeight="60" x:Name="ListViewDownloads" ItemsSource="{Binding}">
+                <ListView Margin="0,0,0,0" RowHeight="60" x:Name="ListViewDownloads" ItemsSource="{Binding}" ItemTapped="ListViewDownloads_ItemTapped">
                     <!--
                     <ListView.ItemsSource>
                         <x:Array Type="{x:Type local:Downloads}">
@@ -69,6 +69,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
                                     </Grid.ColumnDefinitions>
                                     <Image Source="icon.png" Grid.Column="0" Grid.RowSpan="3" BackgroundColor="WhiteSmoke" HeightRequest="60" />
                                     <Label Text="{Binding Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="titile"/>
@@ -78,6 +79,12 @@
                                     <Label x:Name="Status" Text="Seeding" Grid.Column="2" Grid.Row="2"  FontSize="Micro" TextColor="White"/>
                                     <Label x:Name="Ups" Text="1.1 MBps" Grid.Column="3" Grid.Row="2" FontSize="Micro" TextColor="Green"/>
                                     <Label x:Name="Dws" Text="1.0 MBps" Grid.Column="4" Grid.Row="2" FontSize="Micro" TextColor="White"/>
+                                    <Image Source="yts_gear.png" Grid.Column="5" Grid.RowSpan="3" BackgroundColor="WhiteSmoke" HeightRequest="20" VerticalOptions="Center" x:Name="gear">
+                                        <Image.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Tapped="TapGestureRecognizer_Tapped" CommandParameter="{Binding index}"/>
+                                        </Image.GestureRecognizers>
+                                    </Image>
                                 </Grid>
                             </ViewCell>
                         </DataTemplate>

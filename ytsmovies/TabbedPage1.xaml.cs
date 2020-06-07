@@ -16,6 +16,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using Xamarin.Essentials;
 using System.IO;
+using Xamarin.Forms.Markup;
 
 namespace ytsmovies
 {
@@ -30,10 +31,7 @@ namespace ytsmovies
         {
             InitializeComponent();
             torrent = new MyTorrent();
-            Debug.WriteLine("after mytorrent");
-            ListViewDownloads.ItemsSource = MyTorrent.TorrentManList;
-            
-
+            ListViewDownloads.ItemsSource = MyTorrent.TorrentInfoList;
             /*for (int i = 0; i < 150; i++)
             {
 
@@ -112,6 +110,16 @@ namespace ytsmovies
             int ScheduleNotification(string title, string message);
 
             void ReceiveNotification(string title, string message);
+        }
+
+        private void ListViewDownloads_ItemTapped(object sender, ItemTappedEventArgs e)
+        {
+            /*open  a page containing torrent information*/
+        }
+
+        private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
+        {
+            
         }
     }
 
