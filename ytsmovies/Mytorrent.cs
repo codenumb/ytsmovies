@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.Collections.ObjectModel;
 using System.Timers;
 using Xamarin.Essentials;
+using ytsmovies;
 
 namespace ytstorrent
 {
@@ -56,9 +57,57 @@ namespace ytstorrent
             listener = new Top10Listener(10);
             monitorTimer.Interval = 2000;
             monitorTimer.Elapsed += CheckDownloadProgress;
-            //var sometask=setupEngine();
-            //LoadTorrent();
-            //    //StartTorrents();
+            MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "StartThisTorrent",
+                (sender, args) =>
+                {
+                    Console.WriteLine("Message: StartThisTorrent= {0}", args);
+                    if(args>=0)
+                    {
+                        DoTorrentAction(TorrentInfoList[args], TorrentAction.START);
+                    }
+                }
+            );
+
+            MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "StopThisTorrent",
+                (sender, args) =>
+                 {
+                    Console.WriteLine("Message: StopThisTorrent= {0}", args);
+                    if (args >= 0)
+                     {
+                         DoTorrentAction(TorrentInfoList[args], TorrentAction.STOP);
+                     }
+                 }
+            );
+            MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "PauseThisTorrent",
+                (sender, args) =>
+                {
+                    Console.WriteLine("Message: PauseThisTorrent= {0}", args);
+                    if (args >= 0)
+                    {
+                        DoTorrentAction(TorrentInfoList[args], TorrentAction.PAUSE);
+                    }
+                }
+            );
+            MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "RemoveThisTorrent",
+                (sender, args) =>
+                {
+                    Console.WriteLine("Message: RemoveThisTorrent= {0}", args);
+                    if (args >= 0)
+                    {
+                        DoTorrentAction(TorrentInfoList[args], TorrentAction.REMOVE);
+                    }
+                }
+            );
+            MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "DeleteThisTorrent",
+                (sender, args) =>
+                {
+                    Console.WriteLine("Message: DeleteThisTorrent= {0}", args);
+                    if (args >= 0)
+                    {
+                        DoTorrentAction(TorrentInfoList[args], TorrentAction.DELETE);
+                    }
+                }
+            );
         }
         public static async Task setupEngine() //methode for init torrent engine.
         {
@@ -186,7 +235,7 @@ namespace ytstorrent
                 System.IO.File.Copy(torrentFilePath, destPath,true);
                 torinfo.index=TorrentInfoList.Count + 1;                
                 TorrentInfoList.Add(torinfo);
-                torrentAction(torinfo, TorrentAction.START);
+                DoTorrentAction(torinfo, TorrentAction.START);
                 if(!monitorTimer.Enabled)//start monitor if not started already.
                 {
                     monitorTimer.Enabled = true;
@@ -236,24 +285,35 @@ namespace ytstorrent
         }
 
         //start individual torrents.
-        public async void torrentAction(TorrentInfoModel torinfo, TorrentAction state)
+        public async void DoTorrentAction(TorrentInfoModel torinfo, TorrentAction state)
         {
             string filePath;
             string torDownFilePath;
+            bool response=false;
             switch (state)
             {
                 case TorrentAction.START:
                     await torinfo.manager.StartAsync();
+                    TorrentInfoList[torinfo.index - 1].status = "Downloading";
+                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
                     break;
                 case TorrentAction.STOP:
                     await torinfo.manager.StopAsync();
+                    TorrentInfoList[torinfo.index - 1].status = "Stoped";
+                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
                     break;
                 case TorrentAction.PAUSE:
                     await torinfo.manager.PauseAsync();
+                    TorrentInfoList[torinfo.index - 1].status = "Paused";
+                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
                     break;
                 case TorrentAction.DELETE:
                     /*delete .torrent file, infoFile, downloaded files*/
+                    response= await App.Current.MainPage.DisplayAlert("Delete?", "Would you like to delete your data?", "Yes", "No");
+                    if (!response)
+                        break;
                     filePath = Path.Combine(torrentsPath, torinfo.torrentFileName);
+                    TorrentInfoList.RemoveAt(torinfo.index - 1);
                     Console.WriteLine("deleting {0}", filePath);
                     deleteFile(filePath, false);
                     filePath = Path.Combine(downloadsPath, torinfo.manager.Torrent.Name);
@@ -261,14 +321,24 @@ namespace ytstorrent
                     deleteFile(filePath, true);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
                     deleteFile(torinfo.torrentInfoFileName, false);
+                    await TorrentInfoList[torinfo.index - 1].manager.StopAsync();
+                    await engine.Unregister(torinfo.manager);
+                    TorrentInfoList.Remove(torinfo);
                     break;
                 case TorrentAction.REMOVE:
                     /*delete .torrent and info file*/
+                    response = await App.Current.MainPage.DisplayAlert("Remove?", "Would you like to remove your data?", "Yes", "No");
+                    if (!response)
+                        break;
                     filePath = Path.Combine(torrentsPath, torinfo.torrentFileName);
+                    TorrentInfoList.RemoveAt(torinfo.index - 1);
                     Console.WriteLine("deleting {0}", filePath);
                     deleteFile(filePath, false);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
                     deleteFile(torinfo.torrentInfoFileName, false);
+                    await TorrentInfoList[torinfo.index - 1].manager.StopAsync();
+                    await engine.Unregister(torinfo.manager);
+                    TorrentInfoList.Remove(torinfo);
                     break;
                 default:
                     break;
@@ -351,14 +421,14 @@ namespace ytstorrent
         public void CheckDownloadProgress(object o, System.Timers.ElapsedEventArgs e)
         {
             int i;
-            for (i = 0; i < TorrentManList.Count; i++)
+            for (i = 0; i < TorrentInfoList.Count; i++)
             {
 
-                Console.WriteLine("{0}= {1} speeed= {2} Kb/s", TorrentManList[i].Torrent.Name, TorrentManList[i].Progress.ToString(),(TorrentManList[i].Monitor.DownloadSpeed/1024.0));
+                Console.WriteLine("{0}= {1} speeed= {2} Kb/s", TorrentInfoList[i].manager.Torrent.Name, TorrentInfoList[i].manager.Progress.ToString(),(TorrentInfoList[i].manager.Monitor.DownloadSpeed/1024.0));
                 System.Threading.Thread.Sleep(1000);
-                if (TorrentManList[i].Progress == 100.0)
+                if (TorrentInfoList[i].manager.Progress == 100.0)
                 {
-                    Console.WriteLine("{0} downloaded!", TorrentManList[i].Torrent.Name);
+                    Console.WriteLine("{0} downloaded!", TorrentInfoList[i].manager.Torrent.Name);
                     return;
                 }
                 monitorTimer.Enabled = true;
@@ -456,6 +526,7 @@ namespace ytstorrent
         {
             BinaryWriter bw=null;
             string fpath = Path.Combine(torrentsInfoPath, torInfo.manager.Torrent.Name.Replace(' ', '_'));
+            Console.WriteLine("torrent-info-file-path={0}", fpath);
             try
             {
                 bw = new BinaryWriter(new FileStream(fpath, FileMode.OpenOrCreate));

@@ -122,7 +122,7 @@ namespace ytsmovies
         private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
         {
             TappedEventArgs tappedEventArgs = (TappedEventArgs)e;
-            PopupNavigation.Instance.PushAsync(new TorrentActionPopup((Int32)tappedEventArgs.Parameter));
+            PopupNavigation.Instance.PushAsync(new TorrentActionPopup((Int32)tappedEventArgs.Parameter - 1));
         }
 
         private void ListViewDownloads_ItemSelected(object sender, SelectedItemChangedEventArgs e)
