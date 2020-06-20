@@ -34,6 +34,8 @@ namespace ytsmovies
             torrent = new MyTorrent();
             torrent.initDownloadMan();
             ListViewDownloads.ItemsSource = MyTorrent.TorrentInfoList;
+            //ListViewDownloads.BindingContext = MyTorrent.TorrentInfoList;
+            
             /*for (int i = 0; i < 150; i++)
             {
 

@@ -39,24 +39,10 @@
     >
         <ContentPage.Content>
             <StackLayout Margin="10,10,10,0">
-                <ListView Margin="0,0,0,0" RowHeight="60" x:Name="ListViewDownloads" ItemsSource="{Binding}" ItemTapped="ListViewDownloads_ItemTapped" >
-                    <!--
-                    <ListView.ItemsSource>
-                        <x:Array Type="{x:Type local:Downloads}">
-                            <local:Downloads Name="Steve" Size="1.2/1.2GB" Date="02-04-2020" Time="12:00:10 PM" />
-                            <local:Downloads Name="Torrent2" Size="1.8/2.2GB" Date="05-01-2020" Time="02:54:35 AM" />
-                            <local:Downloads Name="Torrent2" Size="900/900MB" Date="29-02-2020" Time="09:02:15 AM" />
-                        </x:Array>
-                    </ListView.ItemsSource>
-                    -->
+                <ListView Margin="0,0,0,0" RowHeight="60" x:Name="ListViewDownloads" ItemsSource="{Binding TorrentInfoList}" ItemTapped="ListViewDownloads_ItemTapped" >
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <ViewCell>
-                                <!--
-                                <StackLayout>
-                                   
-                                    <Label Text="{Binding Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="titile"/>
-                                </StackLayout>-->
                                 <Grid RowSpacing="1" ColumnSpacing="1">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
@@ -72,14 +58,13 @@
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
                                     <Image Source="icon.png" Grid.Column="0" Grid.RowSpan="3" BackgroundColor="WhiteSmoke" HeightRequest="60" />
-                                    <Label Text="{Binding Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="titile"/>
-                                    <Label Text="{Binding Date}" Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2" FontSize="Micro" TextColor="White"/>
-                                    <Label Text="{Binding Time}" Grid.Column="3" Grid.Row="1" Grid.ColumnSpan="2" FontSize="Micro" TextColor="White"/>
+                                    <Label Text="{Binding manager.Torrent.Name}" FontAttributes="Bold" Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="4" TextColor="White" x:Name="title" Margin="3,0,0,0" LineBreakMode="TailTruncation" />
+                                    <Label Text="{Binding dateAdded, StringFormat='Added on: {0}'}" Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="4" FontSize="Micro" TextColor="White" Margin="3,0,0,0"/>
                                     <Label x:Name="Progress" Text="{Binding Size}" Grid.Column="1" Grid.Row="2" FontSize="Micro" TextColor="White"/>
-                                    <Label x:Name="Status" Text="Seeding" Grid.Column="2" Grid.Row="2"  FontSize="Micro" TextColor="White"/>
+                                    <Label x:Name="Status" Text="{Binding status}" Grid.Column="2" Grid.Row="2"  FontSize="Micro" TextColor="White"/>
                                     <Label x:Name="Ups" Text="1.1 MBps" Grid.Column="3" Grid.Row="2" FontSize="Micro" TextColor="Green"/>
                                     <Label x:Name="Dws" Text="1.0 MBps" Grid.Column="4" Grid.Row="2" FontSize="Micro" TextColor="White"/>
-                                    <Image Source="yts_settings.png" Grid.Column="5" Grid.RowSpan="3" HeightRequest="40" VerticalOptions="Center" x:Name="gear" BackgroundColor="Transparent" Margin="0,0,5,0">
+                                    <Image Source="yts_settings.png" Grid.Column="5" Grid.RowSpan="3" HeightRequest="30" VerticalOptions="Center" x:Name="gear" BackgroundColor="Transparent" Margin="0,0,5,0">
                                         <Image.GestureRecognizers>
                                             <TapGestureRecognizer
                                                 Tapped="TapGestureRecognizer_Tapped" CommandParameter="{Binding index}"/>

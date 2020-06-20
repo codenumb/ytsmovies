@@ -20,10 +20,12 @@ using System.Collections.ObjectModel;
 using System.Timers;
 using Xamarin.Essentials;
 using ytsmovies;
+using System.Globalization;
+using System.ComponentModel;
 
 namespace ytstorrent
 {
-    public class MyTorrent
+    public class MyTorrent : INotifyPropertyChanged
     {
         public static int index { set; get; }
         public static string basepath = FileSystem.AppDataDirectory;// Environment.CurrentDirectory;
@@ -37,11 +39,15 @@ namespace ytstorrent
         public static BEncodedDictionary fastResume = new BEncodedDictionary();
         public delegate void OnStateChangedEventHandler(object o, TorrentStateChangedEventArgs e);
         public event OnStateChangedEventHandler TorrentStateChanged;
-        public static ObservableCollection<TorrentManager> TorrentManList= new ObservableCollection<TorrentManager>();
+
+        //public static ObservableCollection<TorrentInfoModel> _TorrentInfoList;
+        //public static ObservableCollection<TorrentInfoModel> TorrentInfoList 
+        //{
+        //    get { return _TorrentInfoList; }
+        //    set { _TorrentInfoList = value;}
+        //}
         public static ObservableCollection<TorrentInfoModel> TorrentInfoList = new ObservableCollection<TorrentInfoModel>();
-        public static System.Timers.Timer monitorTimer = new System.Timers.Timer();
-        //public static ObservableCollection<TorrentManager> TorrentManList { get { return torrentList; }}
-        
+        public static System.Timers.Timer monitorTimer = new System.Timers.Timer();        
 
         public enum TorrentAction
         {
@@ -218,7 +224,6 @@ namespace ytstorrent
                 await engine.Register(manager);
 
                 //add to torrent global list.
-                TorrentManList.Add(manager);
                 Debug.WriteLine("added to list:{0}", torrentFilePath);
                 manager.PeersFound += Manager_PeersFound;
                 initTorrentEvents(manager);
@@ -226,17 +231,19 @@ namespace ytstorrent
                 //save .torrent to torrent path to restore.
                 string destPath = Path.Combine(torrentsPath, "test.torrent");
                 destPath.Replace(' ', '_');
-
                 torinfo.manager = manager;
                 torinfo.torrentFileName = "test.torrent";// destPath;
                 torinfo.status = "downlaoding";
                 torinfo.imageUrl = "none";
+                torinfo.dateAdded = DateTime.Now.ToString();
                 writeTorrentInfoToFile(torinfo);
                 System.IO.File.Copy(torrentFilePath, destPath,true);
                 torinfo.index=TorrentInfoList.Count + 1;                
                 TorrentInfoList.Add(torinfo);
                 DoTorrentAction(torinfo, TorrentAction.START);
-                if(!monitorTimer.Enabled)//start monitor if not started already.
+                Console.WriteLine("Torrent Size={0}", manager.Torrent.Size);
+                Console.WriteLine("Torrent Name= {0}", torinfo.manager.Torrent.Name);
+                if (!monitorTimer.Enabled)//start monitor if not started already.
                 {
                     monitorTimer.Enabled = true;
                 }
@@ -299,7 +306,7 @@ namespace ytstorrent
                     break;
                 case TorrentAction.STOP:
                     await torinfo.manager.StopAsync();
-                    TorrentInfoList[torinfo.index - 1].status = "Stoped";
+                    TorrentInfoList[torinfo.index - 1].status = "Stopped";
                     writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
                     break;
                 case TorrentAction.PAUSE:
@@ -313,7 +320,7 @@ namespace ytstorrent
                     if (!response)
                         break;
                     filePath = Path.Combine(torrentsPath, torinfo.torrentFileName);
-                    TorrentInfoList.RemoveAt(torinfo.index - 1);
+                    //TorrentInfoList.RemoveAt(torinfo.index - 1);
                     Console.WriteLine("deleting {0}", filePath);
                     deleteFile(filePath, false);
                     filePath = Path.Combine(downloadsPath, torinfo.manager.Torrent.Name);
@@ -331,7 +338,7 @@ namespace ytstorrent
                     if (!response)
                         break;
                     filePath = Path.Combine(torrentsPath, torinfo.torrentFileName);
-                    TorrentInfoList.RemoveAt(torinfo.index - 1);
+                    //TorrentInfoList.RemoveAt(torinfo.index - 1);
                     Console.WriteLine("deleting {0}", filePath);
                     deleteFile(filePath, false);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
@@ -395,36 +402,13 @@ namespace ytstorrent
                 listener.WriteLine($"Found {e.NewPeers} new peers and {e.ExistingPeers} existing peers");//throw new Exception("The method or operation is not implemented.");
         }
 
-        public static void StartTorrents()
-        {
-            Console.WriteLine("StartTorrents()");
-            engine.StartAll();
-            Console.WriteLine("Ready");
-            while (true)
-            {
-                int i;
-                for(i=0; i< TorrentManList.Count;i++)
-                //foreach (ObservableCollection<TorrentManager> man in TorrentManList)
-                {
-                    
-                    Console.WriteLine("{0}= {1}",TorrentManList[i].Torrent.Name,TorrentManList[i].Progress.ToString());
-                    System.Threading.Thread.Sleep(1000);
-                    if (TorrentManList[i].Progress == 100.0)
-                    {
-                        Console.WriteLine("{0} downloaded!", TorrentManList[i].Torrent.Name);
-                        return;
-                    }
-                }
-
-            }
-        }
         public void CheckDownloadProgress(object o, System.Timers.ElapsedEventArgs e)
         {
             int i;
             for (i = 0; i < TorrentInfoList.Count; i++)
             {
 
-                Console.WriteLine("{0}= {1} speeed= {2} Kb/s", TorrentInfoList[i].manager.Torrent.Name, TorrentInfoList[i].manager.Progress.ToString(),(TorrentInfoList[i].manager.Monitor.DownloadSpeed/1024.0));
+                Console.WriteLine("{0}= {1} speeed= {2} Kb/s state={3}", TorrentInfoList[i].manager.Torrent.Name, TorrentInfoList[i].manager.Progress.ToString(),(TorrentInfoList[i].manager.Monitor.DownloadSpeed/1024.0), TorrentInfoList[i].manager.State);
                 System.Threading.Thread.Sleep(1000);
                 if (TorrentInfoList[i].manager.Progress == 100.0)
                 {
@@ -437,18 +421,18 @@ namespace ytstorrent
         public async Task Shutdown()
         {
             BEncodedDictionary fastResume = new BEncodedDictionary();
-            for (int i = 0; i < TorrentManList.Count; i++)
+            for (int i = 0; i < TorrentInfoList.Count; i++)
             {
-                var stoppingTask = TorrentManList[i].StopAsync();
-                while (TorrentManList[i].State != TorrentState.Stopped)
+                var stoppingTask = TorrentInfoList[i].manager.StopAsync();
+                while (TorrentInfoList[i].manager.State != TorrentState.Stopped)
                 {
-                    Console.WriteLine("{0} is {1}", TorrentManList[i].Torrent.Name, TorrentManList[i].State);
+                    Console.WriteLine("{0} is {1}", TorrentInfoList[i].manager.Torrent.Name, TorrentInfoList[i].manager.State);
                     Thread.Sleep(250);
                 }
                 await stoppingTask;
 
-                if (TorrentManList[i].HashChecked)
-                    fastResume.Add(TorrentManList[i].Torrent.InfoHash.ToHex(), TorrentManList[i].SaveFastResume().Encode());
+                if (TorrentInfoList[i].manager.HashChecked)
+                    fastResume.Add(TorrentInfoList[i].manager.Torrent.InfoHash.ToHex(), TorrentInfoList[i].manager.SaveFastResume().Encode());
             }
 
             var nodes = await engine.DhtEngine.SaveNodesAsync();
@@ -506,7 +490,6 @@ namespace ytstorrent
                         torInfo.torrentFileName = torFilePath;
                         torInfo.index = TorrentInfoList.Count() + 1;
                         TorrentInfoList.Add(torInfo);
-                        TorrentManList.Add(manager);
                         if(torInfo.status != "downloading")
                         {
                             await manager.StopAsync();
@@ -541,6 +524,7 @@ namespace ytstorrent
                 bw.Write(torInfo.status);
                 bw.Write(torInfo.imageUrl);
                 bw.Write(torInfo.index);
+                bw.Write(torInfo.dateAdded);
                 //bw.Write(torInfo.genre);
                 //bw.Write(torInfo.language);
                 //bw.Write(torInfo.rating);
@@ -573,6 +557,7 @@ namespace ytstorrent
                 torInfo.imageUrl = br.ReadString();
                 torInfo.torrentInfoFileName = fileName;
                 torInfo.index = br.ReadInt32();
+                torInfo.dateAdded = br.ReadString();
                 //torInfo.genre = br.ReadString();
                 //torInfo.language = br.ReadString();
                 //torInfo.rating = br.ReadString();
@@ -589,9 +574,11 @@ namespace ytstorrent
         }
 
     }
+
     public class TorrentInfoModel
     {
-        public TorrentManager manager;
+        public TorrentManager manager { get; set; }
+        public string dateAdded { get; set; }
         public string speedDl { get; set; }
         public string speedUp { get; set; }
         public string status { get; set; }
@@ -606,6 +593,5 @@ namespace ytstorrent
         public string torrentInfoFileName { get; set; }
         public Int32 index { get; set; }
     }
-
 }
 
