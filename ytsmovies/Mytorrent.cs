@@ -22,6 +22,7 @@ using Xamarin.Essentials;
 using ytsmovies;
 using System.Globalization;
 using System.ComponentModel;
+using System.Data.Common;
 
 namespace ytstorrent
 {
@@ -39,15 +40,16 @@ namespace ytstorrent
         public static BEncodedDictionary fastResume = new BEncodedDictionary();
         public delegate void OnStateChangedEventHandler(object o, TorrentStateChangedEventArgs e);
         public event OnStateChangedEventHandler TorrentStateChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
+        public static System.Timers.Timer monitorTimer = new System.Timers.Timer();
 
-        //public static ObservableCollection<TorrentInfoModel> _TorrentInfoList;
-        //public static ObservableCollection<TorrentInfoModel> TorrentInfoList 
-        //{
-        //    get { return _TorrentInfoList; }
-        //    set { _TorrentInfoList = value;}
-        //}
-        public static ObservableCollection<TorrentInfoModel> TorrentInfoList = new ObservableCollection<TorrentInfoModel>();
-        public static System.Timers.Timer monitorTimer = new System.Timers.Timer();        
+        void OnPropertyChanged([CallerMemberName] string name = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+        public static ObservableCollection<TorrentInfoModel> TorrentInfoList { get; set; }
+        
+        //public static ObservableCollection<TorrentInfoModel> TorrentInfoList = new ObservableCollection<TorrentInfoModel>();
 
         public enum TorrentAction
         {
@@ -63,6 +65,7 @@ namespace ytstorrent
             listener = new Top10Listener(10);
             monitorTimer.Interval = 2000;
             monitorTimer.Elapsed += CheckDownloadProgress;
+            TorrentInfoList = new ObservableCollection<TorrentInfoModel>();
             MessagingCenter.Subscribe<TorrentActionPopup, Int32>(this, "StartThisTorrent",
                 (sender, args) =>
                 {
@@ -119,8 +122,6 @@ namespace ytstorrent
         {
             Debug.WriteLine("torrent init start");
             int port = 8765;
-            bool tmp = false;
-            Torrent torrent=null;
             Console.WriteLine("setupEngine()");
             EngineSettings settings = new EngineSettings();
             Console.WriteLine("downloadpath={0}", downloadsPath);
@@ -156,41 +157,7 @@ namespace ytstorrent
                 Directory.CreateDirectory(torrentsPath);
             if (!Directory.Exists(torrentsInfoPath))
                 Directory.CreateDirectory(torrentsInfoPath);
-            Debug.WriteLine("{0}:exist", torrentsPath);
-            //try
-            //{
-            //    if (File.Exists(fastResumeFile))
-            //        fastResume = BEncodedValue.Decode<BEncodedDictionary>(File.ReadAllBytes(fastResumeFile));
-            //}
-            //catch
-            //{
-            //    Debug.WriteLine("error here");
-            //}
-            ///*open torrentfile dir and load all the torrents*/
-            //Debug.WriteLine("torrent resuming from file!");
-            //if (System.IO.Directory.Exists(torrentsPath))
-            //{
-            //    string[] files = System.IO.Directory.GetFiles(torrentsPath);
-            //    foreach(string f in files)
-            //    {
-            //        Console.WriteLine("adding f= {0}", f);
-            //        torrent = await Torrent.LoadAsync(f);
-            //        TorrentInfoModel torInfo = new TorrentInfoModel();
-            //        TorrentManager manager = new TorrentManager(torrent, downloadsPath, new TorrentSettings());
-            //        manager.LoadFastResume(new FastResume((BEncodedDictionary)fastResume[torrent.InfoHash.ToHex()]));
-            //        await engine.Register(manager);
-            //        torInfo.manager = manager;
-            //        torInfo.torrentFileName = f;
-            //        TorrentManList.Add(manager);
-            //        initTorrentEvents(manager); // hook all the events
-            //        tmp = true;
-            //    }
-            //}
-            //if (tmp)
-            //    monitorTimer.Enabled = true;
-            //Debug.WriteLine("torrent init exit!");
-            //await engine.StartAllAsync();
-            
+            Debug.WriteLine("{0}:exist", torrentsPath);            
         }
 
         //method to add torrent to torrent engine. source can be magnetic uri or .torrent file
@@ -226,20 +193,20 @@ namespace ytstorrent
                 //add to torrent global list.
                 Debug.WriteLine("added to list:{0}", torrentFilePath);
                 manager.PeersFound += Manager_PeersFound;
-                initTorrentEvents(manager);
+               
 
                 //save .torrent to torrent path to restore.
-                string destPath = Path.Combine(torrentsPath, "test.torrent");
+                string destPath = Path.Combine(torrentsPath, torrentFileName);
                 destPath.Replace(' ', '_');
                 torinfo.manager = manager;
-                torinfo.torrentFileName = "test.torrent";// destPath;
+                torinfo.torrentFileName = torrentFileName;// destPath;
                 torinfo.status = "downlaoding";
                 torinfo.imageUrl = "none";
                 torinfo.dateAdded = DateTime.Now.ToString();
                 writeTorrentInfoToFile(torinfo);
                 System.IO.File.Copy(torrentFilePath, destPath,true);
-                torinfo.index=TorrentInfoList.Count + 1;                
                 TorrentInfoList.Add(torinfo);
+                initTorrentEvents(torinfo);
                 DoTorrentAction(torinfo, TorrentAction.START);
                 Console.WriteLine("Torrent Size={0}", manager.Torrent.Size);
                 Console.WriteLine("Torrent Name= {0}", torinfo.manager.Torrent.Name);
@@ -255,36 +222,37 @@ namespace ytstorrent
         //public void saveTorrentFile()
 
         //hook events of each torrents to handlers.
-        public static void initTorrentEvents(TorrentManager manager)
+        public static void initTorrentEvents(TorrentInfoModel torInfo)
         {
-            manager.PeerConnected += (o, e) => {
+            torInfo.manager.PeerConnected += (o, e) => {
                 lock (listener)
                     listener.WriteLine($"Connection succeeded: {e.Peer.Uri}");
                 Console.WriteLine($"Connection succeeded: {e.Peer.Uri}");
             };
-            manager.ConnectionAttemptFailed += (o, e) => {
+            torInfo.manager.ConnectionAttemptFailed += (o, e) => {
                 lock (listener)
                     listener.WriteLine(
                         $"Connection failed: {e.Peer.ConnectionUri} - {e.Reason} - {e.Peer.AllowedEncryption}");
                 Console.WriteLine($"Connection failed: {e.Peer.ConnectionUri} - {e.Reason} - {e.Peer.AllowedEncryption}");
             };
             // Every time a piece is hashed, this is fired.
-            manager.PieceHashed += delegate (object o, PieceHashedEventArgs e) {
+            torInfo.manager.PieceHashed += delegate (object o, PieceHashedEventArgs e) {
                 lock (listener)
                     listener.WriteLine($"Piece Hashed: {e.PieceIndex} - {(e.HashPassed ? "Pass" : "Fail")}");
                     Console.WriteLine($"Piece Hashed: {e.PieceIndex} - {(e.HashPassed ? "Pass" : "Fail")}");
             };
 
             // Every time the state changes (Stopped -> Seeding -> Downloading -> Hashing) this is fired
-            manager.TorrentStateChanged += delegate (object o, TorrentStateChangedEventArgs e) {
+            torInfo.manager.TorrentStateChanged += delegate (object o, TorrentStateChangedEventArgs e) {
                 lock (listener)
                     listener.WriteLine($"OldState: {e.OldState} NewState: {e.NewState}");
                     Console.WriteLine($"OldState: {e.OldState} NewState: {e.NewState}");
+                    TorrentInfoList[TorrentInfoList.IndexOf(torInfo)].status = e.NewState.ToString();
             };
 
-            manager.TorrentStateChanged += onStateChanged;
+            torInfo.manager.TorrentStateChanged += onStateChanged;
             // Every time the tracker's state changes, this is fired
-            manager.TrackerManager.AnnounceComplete += (sender, e) => {
+            torInfo.manager.TrackerManager.AnnounceComplete += (sender, e) => {
                 listener.WriteLine($"{e.Successful}: {e.Tracker}");
                 Console.WriteLine($"{e.Successful}: {e.Tracker}");
             };
@@ -295,24 +263,23 @@ namespace ytstorrent
         public async void DoTorrentAction(TorrentInfoModel torinfo, TorrentAction state)
         {
             string filePath;
-            string torDownFilePath;
             bool response=false;
             switch (state)
             {
                 case TorrentAction.START:
                     await torinfo.manager.StartAsync();
-                    TorrentInfoList[torinfo.index - 1].status = "Downloading";
-                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Downloading";
+                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
                     break;
                 case TorrentAction.STOP:
                     await torinfo.manager.StopAsync();
-                    TorrentInfoList[torinfo.index - 1].status = "Stopped";
-                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Stopped";
+                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
                     break;
                 case TorrentAction.PAUSE:
                     await torinfo.manager.PauseAsync();
-                    TorrentInfoList[torinfo.index - 1].status = "Paused";
-                    writeTorrentInfoToFile(TorrentInfoList[torinfo.index - 1]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Paused";
+                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
                     break;
                 case TorrentAction.DELETE:
                     /*delete .torrent file, infoFile, downloaded files*/
@@ -328,7 +295,7 @@ namespace ytstorrent
                     deleteFile(filePath, true);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
                     deleteFile(torinfo.torrentInfoFileName, false);
-                    await TorrentInfoList[torinfo.index - 1].manager.StopAsync();
+                    await TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].manager.StopAsync();
                     await engine.Unregister(torinfo.manager);
                     TorrentInfoList.Remove(torinfo);
                     break;
@@ -343,7 +310,7 @@ namespace ytstorrent
                     deleteFile(filePath, false);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
                     deleteFile(torinfo.torrentInfoFileName, false);
-                    await TorrentInfoList[torinfo.index - 1].manager.StopAsync();
+                    await TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].manager.StopAsync();
                     await engine.Unregister(torinfo.manager);
                     TorrentInfoList.Remove(torinfo);
                     break;
@@ -488,20 +455,19 @@ namespace ytstorrent
                         await engine.Register(manager);
                         torInfo.manager = manager;
                         torInfo.torrentFileName = torFilePath;
-                        torInfo.index = TorrentInfoList.Count() + 1;
                         TorrentInfoList.Add(torInfo);
-                        if(torInfo.status != "downloading")
+                        if(torInfo.status == TorrentState.Downloading.ToString())
                         {
-                            await manager.StopAsync();
+                            await manager.StartAsync();
                         }
-                        initTorrentEvents(manager); // hook all the events
+                        initTorrentEvents(torInfo); // hook all the events
                         tmp = true;
                     }
                 }
                 if (tmp)
                     monitorTimer.Enabled = true;
                 Debug.WriteLine("torrent init exit!");
-                await engine.StartAllAsync();
+                //await engine.StartAllAsync();
             }
         }
 
@@ -523,7 +489,6 @@ namespace ytstorrent
                 bw.Write(torInfo.torrentFileName);
                 bw.Write(torInfo.status);
                 bw.Write(torInfo.imageUrl);
-                bw.Write(torInfo.index);
                 bw.Write(torInfo.dateAdded);
                 //bw.Write(torInfo.genre);
                 //bw.Write(torInfo.language);
@@ -556,7 +521,6 @@ namespace ytstorrent
                 torInfo.status = br.ReadString();
                 torInfo.imageUrl = br.ReadString();
                 torInfo.torrentInfoFileName = fileName;
-                torInfo.index = br.ReadInt32();
                 torInfo.dateAdded = br.ReadString();
                 //torInfo.genre = br.ReadString();
                 //torInfo.language = br.ReadString();
@@ -575,13 +539,46 @@ namespace ytstorrent
 
     }
 
-    public class TorrentInfoModel
+    public class TorrentInfoModel : INotifyPropertyChanged
     {
         public TorrentManager manager { get; set; }
+
         public string dateAdded { get; set; }
-        public string speedDl { get; set; }
-        public string speedUp { get; set; }
-        public string status { get; set; }
+
+        private double _progress;
+        public double progress 
+        {
+            get { return _progress; }
+            set { _progress = value; OnPropertyChanged(); }
+        }
+
+        private string _speedDl;
+        public string speedDl
+        {
+            get { return _speedDl; }
+            set { _speedDl = value; OnPropertyChanged(); }
+        }
+
+        private string _speedUp;
+        public string speedUp
+        {
+            get { return _speedUp; }
+            set { _speedUp = value; OnPropertyChanged(); }
+        }
+
+        private string _status;
+        public string status
+        {
+            get { return _status; }
+            set { _status = value; OnPropertyChanged(); }
+        }
+
+        //private TorrentState _state;
+        //public TorrentState state
+        //{
+        //    get { return _state; }
+        //    set { _state = value; OnPropertyChanged(); }
+        //}
         public string imageUrl { get; set; }
         public string genre { get; set; }
         public string year { get; set; }
@@ -591,7 +588,13 @@ namespace ytstorrent
         public string language { get; set; }
         public string torrentFileName { get; set; }
         public string torrentInfoFileName { get; set; }
-        public Int32 index { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        void OnPropertyChanged([CallerMemberName] string name = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
     }
 }
 

@@ -8,7 +8,7 @@ using ytstorrent;
 
 namespace ytsmovies
 {
-    class TorrentListViewModel : INotifyPropertyChanged
+    public class TorrentListViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
         void OnPropertyChanged([CallerMemberName] string name = "")

@@ -64,12 +64,17 @@
                                     <Label x:Name="Status" Text="{Binding status}" Grid.Column="2" Grid.Row="2"  FontSize="Micro" TextColor="White"/>
                                     <Label x:Name="Ups" Text="1.1 MBps" Grid.Column="3" Grid.Row="2" FontSize="Micro" TextColor="Green"/>
                                     <Label x:Name="Dws" Text="1.0 MBps" Grid.Column="4" Grid.Row="2" FontSize="Micro" TextColor="White"/>
+                                    <ImageButton Source="yts_settings.png" Grid.Column="5" Grid.RowSpan="3" HeightRequest="30" VerticalOptions="Center" x:Name="gear" BackgroundColor="Transparent" Margin="0,0,5,0" CommandParameter="{Binding}"
+                                            Clicked="gear_Clicked"/>
+                                        
+                                    <!--
                                     <Image Source="yts_settings.png" Grid.Column="5" Grid.RowSpan="3" HeightRequest="30" VerticalOptions="Center" x:Name="gear" BackgroundColor="Transparent" Margin="0,0,5,0">
                                         <Image.GestureRecognizers>
                                             <TapGestureRecognizer
-                                                Tapped="TapGestureRecognizer_Tapped" CommandParameter="{Binding index}"/>
+                                                Tapped="TapGestureRecognizer_Tapped" CommandParameter="{Binding}"/>
                                         </Image.GestureRecognizers>
                                     </Image>
+                                      --> 
                                 </Grid>
                             </ViewCell>
                         </DataTemplate>

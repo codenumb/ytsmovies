@@ -34,6 +34,7 @@ namespace ytsmovies
             torrent = new MyTorrent();
             torrent.initDownloadMan();
             ListViewDownloads.ItemsSource = MyTorrent.TorrentInfoList;
+            
             //ListViewDownloads.BindingContext = MyTorrent.TorrentInfoList;
             
             /*for (int i = 0; i < 150; i++)
@@ -74,7 +75,7 @@ namespace ytsmovies
                 //string torrentFile =System.IO.Path.Combine(file.FilePath,file.FileName);
                 string torrentFile = file.FilePath;
                 string torrentFileName = file.FileName;
-                Console.WriteLine("path:{0}, filename{0}", torrentFile,torrentFileName);
+                Console.WriteLine("path:{0}, filename:{1}", torrentFile,torrentFileName);
                 bool exist = File.Exists(torrentFile);
                 if (!exist)
                 {
@@ -121,15 +122,26 @@ namespace ytsmovies
             /*open  a page containing torrent information*/
         }
 
-        private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
-        {
-            TappedEventArgs tappedEventArgs = (TappedEventArgs)e;
-            PopupNavigation.Instance.PushAsync(new TorrentActionPopup((Int32)tappedEventArgs.Parameter - 1));
-        }
+        //private void TapGestureRecognizer_Tapped(object sender, EventArgs e)
+        //{
+        //    var obj = sender as TorrentInfoModel;
+        //    Console.WriteLine("Button passed = {0}", obj.torrentFileName);
+        //    TappedEventArgs tappedEventArgs = (TappedEventArgs)e;
+        //    PopupNavigation.Instance.PushAsync(new TorrentActionPopup((Int32)tappedEventArgs.Parameter - 1));
+        //}
 
         private void ListViewDownloads_ItemSelected(object sender, SelectedItemChangedEventArgs e)
         {
 
+        }
+
+        private void gear_Clicked(object sender, EventArgs e)
+        {
+            var b = (ImageButton)sender;
+            var obj = b.CommandParameter as TorrentInfoModel;
+            Console.WriteLine("Button passed = {0}",obj.torrentFileName);
+            int index = MyTorrent.TorrentInfoList.IndexOf(obj);
+            PopupNavigation.Instance.PushAsync(new TorrentActionPopup(index));
         }
     }
 
