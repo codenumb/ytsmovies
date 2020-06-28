@@ -34,9 +34,8 @@ namespace ytsmovies
             torrent = new MyTorrent();
             torrent.initDownloadMan();
             ListViewDownloads.ItemsSource = MyTorrent.TorrentInfoList;
-            
             //ListViewDownloads.BindingContext = MyTorrent.TorrentInfoList;
-            
+
             /*for (int i = 0; i < 150; i++)
             {
 
@@ -75,7 +74,7 @@ namespace ytsmovies
                 //string torrentFile =System.IO.Path.Combine(file.FilePath,file.FileName);
                 string torrentFile = file.FilePath;
                 string torrentFileName = file.FileName;
-                Console.WriteLine("path:{0}, filename:{1}", torrentFile,torrentFileName);
+                Console.WriteLine("path:{0}, filename:{1}", torrentFile, torrentFileName);
                 bool exist = File.Exists(torrentFile);
                 if (!exist)
                 {
@@ -100,7 +99,7 @@ namespace ytsmovies
 
         }
 
-        private  async void buttonExit_Clicked(object sender, EventArgs e)
+        private async void buttonExit_Clicked(object sender, EventArgs e)
         {
             Console.WriteLine("YTS exiting!....");
             await torrent.Shutdown();
@@ -139,23 +138,40 @@ namespace ytsmovies
         {
             var b = (ImageButton)sender;
             var obj = b.CommandParameter as TorrentInfoModel;
-            Console.WriteLine("Button passed = {0}",obj.torrentFileName);
+            Console.WriteLine("Button passed = {0}", obj.torrentFileName);
             int index = MyTorrent.TorrentInfoList.IndexOf(obj);
-            PopupNavigation.Instance.PushAsync(new TorrentActionPopup(index));
+            PopupNavigation.Instance.PushAsync(new TorrentActionPopup(index,obj.manager.Torrent.Name));
         }
-    }
 
-    public class Downloads
-    {
-        public string Name { get; set; }
-        public string Size { get; set; }
-        public string Date { get; set; }
-        public string Time { get; set; }
-    }
-   public class Person
-    {
-        public string Name { get; set; }
-        public string Age    { get; set; }
-        public string Location { get; set; }
+        private void buttonReset_Clicked(object sender, EventArgs e)
+        {
+            Console.WriteLine("Reseting Everything");
+            deleteAll(MyTorrent.torrentsPath);
+            deleteAll(MyTorrent.torrentsInfoPath);
+            torrent.deleteFile(MyTorrent.fastResumeFile,false);
+
+        }
+        public void deleteAll(string path)
+        {
+            string[] files = System.IO.Directory.GetFiles(path);
+            foreach (string m in files)
+            {
+                torrent.deleteFile(m, false);
+            }
+        }
+
+        public class Downloads
+        {
+            public string Name { get; set; }
+            public string Size { get; set; }
+            public string Date { get; set; }
+            public string Time { get; set; }
+        }
+        public class Person
+        {
+            public string Name { get; set; }
+            public string Age { get; set; }
+            public string Location { get; set; }
+        }
     }
 }

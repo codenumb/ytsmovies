@@ -11,12 +11,12 @@
              x:Class="ytsmovies.TorrentActionPopup">
     <pages:PopupPage.Animation>
         <animations:ScaleAnimation 
-            PositionIn="Center"
-            PositionOut="Center"
+            PositionIn="Right"
+            PositionOut="Left"
             ScaleIn="1.2"
             ScaleOut="0.8"
-            DurationIn="400"
-            DurationOut="300"
+            DurationIn="100"
+            DurationOut="50"
             EasingIn="SinOut"
             EasingOut="SinIn"
             HasBackgroundAnimation="True"/>
@@ -24,6 +24,7 @@
     <StackLayout VerticalOptions="Center" Margin="80,0" Spacing="0">
         <Grid RowSpacing="1" ColumnSpacing="1">
             <Grid.RowDefinitions>
+                <RowDefinition Height="60"/>
                 <RowDefinition Height="40"/>
                 <RowDefinition Height="40"/>
                 <RowDefinition Height="40"/>
@@ -33,10 +34,11 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Button Text="Start" Grid.Row="0" BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="start" Clicked="start_Clicked"  />
-            <Button Text="Pause" Grid.Row="1"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="pause" Clicked="pause_Clicked"/>
-            <Button Text="Stop" Grid.Row="2"   BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="stop" Clicked="stop_Clicked"/>
-            <Button Text="Remove" Grid.Row="3"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="remove" Clicked="remove_Clicked"/>
+            <Label x:Name="title" HorizontalTextAlignment="Center" FontAttributes="Bold" Grid.Row="0" BackgroundColor="#feb236" TextColor="White" Margin="0,0,0,0" VerticalTextAlignment="Center" />
+            <Button Text="Start" Grid.Row="1" BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="start" Clicked="start_Clicked"  />
+            <Button Text="Pause" Grid.Row="2"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="pause" Clicked="pause_Clicked"/>
+            <Button Text="Stop" Grid.Row="3"   BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="stop" Clicked="stop_Clicked"/>
+            <Button Text="Remove" Grid.Row="4"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="remove" Clicked="remove_Clicked"/>
             <Button Text="Remove and Delete" Grid.Row="4"  BackgroundColor="Black" TextColor="White" Margin="0,0,0,0" x:Name="delete" Clicked="delete_Clicked"/>
         </Grid>
     </StackLayout>

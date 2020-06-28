@@ -15,13 +15,14 @@ namespace ytsmovies
     public partial class TorrentActionPopup : Rg.Plugins.Popup.Pages.PopupPage
     {
         public Int32 index { set; get; }
-        public TorrentActionPopup(Int32 itemIndex)
+        public TorrentActionPopup(Int32 itemIndex, string name)
         {
             InitializeComponent();
             if(itemIndex >= 0)
             {
                 index = itemIndex;
             }
+            title.Text = name;
             Console.WriteLine("item clicked = {0}", index);            
         }
 

@@ -23,6 +23,10 @@ using ytsmovies;
 using System.Globalization;
 using System.ComponentModel;
 using System.Data.Common;
+using ByteSizeLib;
+using ytsmovies.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ytstorrent
 {
@@ -203,7 +207,11 @@ namespace ytstorrent
                 torinfo.status = "downlaoding";
                 torinfo.imageUrl = "none";
                 torinfo.dateAdded = DateTime.Now.ToString();
-                writeTorrentInfoToFile(torinfo);
+                torinfo.speedUp = "";
+                torinfo.speedDl = "";
+                torinfo.progress = "";
+                torinfo.WriteToFile();
+                //writeTorrentInfoToFile(torinfo);
                 System.IO.File.Copy(torrentFilePath, destPath,true);
                 TorrentInfoList.Add(torinfo);
                 initTorrentEvents(torinfo);
@@ -269,17 +277,20 @@ namespace ytstorrent
                 case TorrentAction.START:
                     await torinfo.manager.StartAsync();
                     TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Downloading";
-                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].WriteToFile<string>("status", "Downloading");
+                    //writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
                     break;
                 case TorrentAction.STOP:
                     await torinfo.manager.StopAsync();
                     TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Stopped";
-                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
+                    //writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].WriteToFile<string>("status", "Stopped");
                     break;
                 case TorrentAction.PAUSE:
                     await torinfo.manager.PauseAsync();
                     TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].status = "Paused";
-                    writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
+                    //writeTorrentInfoToFile(TorrentInfoList[TorrentInfoList.IndexOf(torinfo)]);
+                    TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].WriteToFile<string>("status", "Paused");
                     break;
                 case TorrentAction.DELETE:
                     /*delete .torrent file, infoFile, downloaded files*/
@@ -290,9 +301,10 @@ namespace ytstorrent
                     //TorrentInfoList.RemoveAt(torinfo.index - 1);
                     Console.WriteLine("deleting {0}", filePath);
                     deleteFile(filePath, false);
+                    bool isDir = torinfo.manager.Torrent.Files.Count() == 1 ? false : true;                    
                     filePath = Path.Combine(downloadsPath, torinfo.manager.Torrent.Name);
                     Console.WriteLine("deleting {0}", filePath);
-                    deleteFile(filePath, true);
+                    deleteFile(filePath, isDir);
                     Console.WriteLine("deleting {0}", torinfo.torrentInfoFileName);
                     deleteFile(torinfo.torrentInfoFileName, false);
                     await TorrentInfoList[TorrentInfoList.IndexOf(torinfo)].manager.StopAsync();
@@ -372,15 +384,41 @@ namespace ytstorrent
         public void CheckDownloadProgress(object o, System.Timers.ElapsedEventArgs e)
         {
             int i;
+            string uSpeed;
+            string dSpeed;
+            string progress;
+            string speed;
+            ByteSize p;
+            double d;
             for (i = 0; i < TorrentInfoList.Count; i++)
             {
+                p = ByteSize.FromBytes(TorrentInfoList[i].manager.Monitor.DownloadSpeed);
+                dSpeed = p.ToString("#.#") + "\u2193" ;
+                p = ByteSize.FromBytes(TorrentInfoList[i].manager.Monitor.UploadSpeed);
+                uSpeed = p.ToString("#.#") + "\u2191";
+                p = ByteSize.FromBytes(TorrentInfoList[i].manager.Monitor.DataBytesDownloaded);
+                speed = dSpeed + "   " + uSpeed;
+                Console.WriteLine("Session downloaded={0} || in kbps = {1} progress%= {2} size = {3}", 
+                    TorrentInfoList[i].manager.Monitor.DataBytesDownloaded,
+                    p.ToString("#.#"), 
+                    TorrentInfoList[i].manager.Progress,
+                    TorrentInfoList[i].manager.Torrent.Size);
 
-                Console.WriteLine("{0}= {1} speeed= {2} Kb/s state={3}", TorrentInfoList[i].manager.Torrent.Name, TorrentInfoList[i].manager.Progress.ToString(),(TorrentInfoList[i].manager.Monitor.DownloadSpeed/1024.0), TorrentInfoList[i].manager.State);
+                d= (TorrentInfoList[i].manager.Progress * TorrentInfoList[i].manager.Torrent.Size)/100;
+                p = ByteSize.FromBytes(d);                             
+                progress = p.ToString("#.#") + " / "+ ByteSize.FromBytes(TorrentInfoList[i].manager.Torrent.Size);
+                Console.WriteLine("{0}:dSpeeed= {1} uSpeed= {2} progress={3} state={4}", 
+                    TorrentInfoList[i].manager.Torrent.Name, 
+                    dSpeed, uSpeed, progress, 
+                    TorrentInfoList[i].manager.State);
+                TorrentInfoList[i].speedDl = speed;
+                TorrentInfoList[i].speedUp = uSpeed;
+                TorrentInfoList[i].progress = progress;
                 System.Threading.Thread.Sleep(1000);
                 if (TorrentInfoList[i].manager.Progress == 100.0)
                 {
                     Console.WriteLine("{0} downloaded!", TorrentInfoList[i].manager.Torrent.Name);
-                    return;
+                    //return;
                 }
                 monitorTimer.Enabled = true;
             }
@@ -390,6 +428,8 @@ namespace ytstorrent
             BEncodedDictionary fastResume = new BEncodedDictionary();
             for (int i = 0; i < TorrentInfoList.Count; i++)
             {
+                TorrentInfoList[i].WriteToFile();
+                //writeTorrentInfoToFile(TorrentInfoList[i]);
                 var stoppingTask = TorrentInfoList[i].manager.StopAsync();
                 while (TorrentInfoList[i].manager.State != TorrentState.Stopped)
                 {
@@ -399,7 +439,7 @@ namespace ytstorrent
                 await stoppingTask;
 
                 if (TorrentInfoList[i].manager.HashChecked)
-                    fastResume.Add(TorrentInfoList[i].manager.Torrent.InfoHash.ToHex(), TorrentInfoList[i].manager.SaveFastResume().Encode());
+                    fastResume.Add(TorrentInfoList[i].manager.Torrent.InfoHash.ToHex(), TorrentInfoList[i].manager.SaveFastResume().Encode());                
             }
 
             var nodes = await engine.DhtEngine.SaveNodesAsync();
@@ -444,7 +484,8 @@ namespace ytstorrent
                 foreach (string m in movies)
                 {
                     TorrentInfoModel torInfo = new TorrentInfoModel();
-                    readTorrentInfoFromFile(torInfo, m);
+                    torInfo.ReadFromFile(m);
+                    //readTorrentInfoFromFile(torInfo, m);
                     torFilePath = Path.Combine(torrentsPath, torInfo.torrentFileName);
                     if (System.IO.File.Exists(torFilePath))
                     {
@@ -470,83 +511,16 @@ namespace ytstorrent
                 //await engine.StartAllAsync();
             }
         }
-
-        public void writeTorrentInfoToFile(TorrentInfoModel torInfo)
-        {
-            BinaryWriter bw=null;
-            string fpath = Path.Combine(torrentsInfoPath, torInfo.manager.Torrent.Name.Replace(' ', '_'));
-            Console.WriteLine("torrent-info-file-path={0}", fpath);
-            try
-            {
-                bw = new BinaryWriter(new FileStream(fpath, FileMode.OpenOrCreate));
-            }
-            catch (IOException e)
-            {
-                Console.WriteLine(e.Message + "\n cant create file");
-            }
-            try
-            {
-                bw.Write(torInfo.torrentFileName);
-                bw.Write(torInfo.status);
-                bw.Write(torInfo.imageUrl);
-                bw.Write(torInfo.dateAdded);
-                //bw.Write(torInfo.genre);
-                //bw.Write(torInfo.language);
-                //bw.Write(torInfo.rating);
-                //bw.Write(torInfo.resolution);
-                //bw.Write(torInfo.year);
-                //bw.Write(torInfo.duration);
-            }
-            catch (IOException e)
-            {
-                Console.WriteLine(e.Message + "\n Cannot write to file.");
-                return;
-            }
-            bw.Close();
-        }
-        public void readTorrentInfoFromFile(TorrentInfoModel torInfo, string fileName)
-        {
-            BinaryReader br=null;
-            try
-            {
-                br = new BinaryReader(new FileStream(fileName, FileMode.Open));
-            }
-            catch (IOException e)
-            {
-                Console.WriteLine(e.Message + "\n cant create file");
-            }
-            try
-            {
-                torInfo.torrentFileName = br.ReadString();
-                torInfo.status = br.ReadString();
-                torInfo.imageUrl = br.ReadString();
-                torInfo.torrentInfoFileName = fileName;
-                torInfo.dateAdded = br.ReadString();
-                //torInfo.genre = br.ReadString();
-                //torInfo.language = br.ReadString();
-                //torInfo.rating = br.ReadString();
-                //torInfo.resolution = br.ReadString();
-                //torInfo.year = br.ReadString();
-                //torInfo.duration = br.ReadString();
-            }
-            catch (IOException e)
-            {
-                Console.WriteLine(e.Message + "\n Cannot write to file.");
-                return;
-            }
-            br.Close();
-        }
-
     }
 
     public class TorrentInfoModel : INotifyPropertyChanged
     {
         public TorrentManager manager { get; set; }
 
-        public string dateAdded { get; set; }
+        public string dateAdded { get; set; } = "";
 
-        private double _progress;
-        public double progress 
+        private string _progress;
+        public string progress 
         {
             get { return _progress; }
             set { _progress = value; OnPropertyChanged(); }
@@ -572,29 +546,106 @@ namespace ytstorrent
             get { return _status; }
             set { _status = value; OnPropertyChanged(); }
         }
-
-        //private TorrentState _state;
-        //public TorrentState state
-        //{
-        //    get { return _state; }
-        //    set { _state = value; OnPropertyChanged(); }
-        //}
-        public string imageUrl { get; set; }
-        public string genre { get; set; }
-        public string year { get; set; }
-        public string duration { get; set; }
+        public string imageUrl { get; set; } = "";
+        public string genre { get; set; } = "";
+        public string year { get; set; } = "";
+        public string duration { get; set; } = "";
         public string resolution { get; set; }
-        public string rating { get; set; }
-        public string language { get; set; }
-        public string torrentFileName { get; set; }
-        public string torrentInfoFileName { get; set; }
+        public string rating { get; set; } = "";
+        public string language { get; set; } = "";
+        public string torrentFileName { get; set; } = "";
+        public string torrentInfoFileName { get; set; } = "";
 
         public event PropertyChangedEventHandler PropertyChanged;
-
+        private string saveDataPath;
         void OnPropertyChanged([CallerMemberName] string name = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+        public void WriteToFile()
+        {
+            TorrentInfoToFile infoFileData=new TorrentInfoToFile();
+            infoFileData.dateAdded = this.dateAdded;
+            infoFileData.duration = this.duration;
+            infoFileData.imageUrl = this.imageUrl;
+            infoFileData.language = this.language;
+            infoFileData.rating = this.rating;
+            infoFileData.resolution = this.resolution;
+            infoFileData.torrentFileName = this.torrentFileName;
+            infoFileData.status = this.status;
+            infoFileData.torrentInfoFileName = this.torrentInfoFileName;
+            infoFileData.year = this.year;
+            infoFileData.genre = this.genre;
+
+            string jString = JsonConvert.SerializeObject(infoFileData);
+            string fpath = Path.Combine(MyTorrent.torrentsInfoPath, manager.Torrent.Name.Replace(' ', '_'));
+            File.WriteAllText(fpath, jString);
+            Console.WriteLine("jString w:{0}", jString);
+        }
+        public void WriteToFile<TypeOfValue>(string key, TypeOfValue value)
+        {
+            Console.WriteLine("key= {0} value= {1}", key, value);
+            //read json file to json object and update value then write back to file
+            if (!System.IO.File.Exists(this.torrentInfoFileName))
+                return;
+            var json = File.ReadAllText(this.torrentInfoFileName);
+            try
+            {
+                var jObject = JObject.Parse(json);
+                if (jObject != null)
+                {
+                    JValue val = new JValue((TypeOfValue)value);
+                    jObject.Property(key).Value = val; //JContainer.FromObject(value);
+                    string outj = JsonConvert.SerializeObject(jObject, Formatting.Indented);
+                    File.WriteAllText(this.torrentInfoFileName, outj);
+                    Console.WriteLine("new = {0}", outj);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public void ReadFromFile(string filename)
+        {
+            string jString = File.ReadAllText(filename);
+            Console.WriteLine("jstring= {0}", jString);
+            TorrentInfoToFile infoFileData = JsonConvert.DeserializeObject<TorrentInfoToFile>(jString);
+            dateAdded = infoFileData.dateAdded;
+            duration = infoFileData.duration;
+            imageUrl = infoFileData.imageUrl;
+            language = infoFileData.language ;
+            rating = infoFileData.rating;
+            resolution = infoFileData.resolution;
+            torrentFileName = infoFileData.torrentFileName;
+            status = infoFileData.status;
+            torrentInfoFileName = infoFileData.torrentInfoFileName;
+            year = infoFileData.year;
+            genre = infoFileData.genre;
+        }
+        public TypeOfValue ReadFromFile<TypeOfValue>(string file, string key, TypeOfValue value)
+        {
+            Console.WriteLine("key= {0} value= {1}", key, value);
+            if (!System.IO.File.Exists(file))
+                return (TypeOfValue)Convert.ChangeType(0, typeof(TypeOfValue));
+            var json = File.ReadAllText(file);
+            try
+            {
+                var jObject = JObject.Parse(json);
+                if (jObject != null)
+                {
+                    JToken jtok = jObject.Property(key).Value;
+                    return (TypeOfValue)Convert.ChangeType(jtok.Value<TypeOfValue>(), typeof(TypeOfValue));
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return (TypeOfValue)Convert.ChangeType(0, typeof(TypeOfValue));
+        }
+
     }
 }
 
